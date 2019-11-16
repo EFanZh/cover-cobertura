@@ -6,7 +6,7 @@
 (struct coverage-line (number hits))
 (struct coverage-class (name filename line-rate lines))
 (struct coverage-package (name line-rate classes))
-(struct coverage-coverage (line-rate lines-covered lines-valid timestamp sources packages))
+(struct coverage-coverage (line-rate lines-covered lines-valid timestamp packages))
 
 (define (check-line-coverage coverage file start end)
   (let irrelevant ([i start])
@@ -92,7 +92,6 @@
                        lines-covered
                        lines-valid
                        (current-milliseconds)
-                       '(".")
                        packages)))
 
 (define (build-xml-report report)
@@ -114,30 +113,27 @@
                   (attribute #f #f 'complexity "0")
                   (attribute #f #f 'version "0")
                   (attribute #f #f 'timestamp (number->string (coverage-coverage-timestamp report))))
-            (map xexpr->xml
-                 `((sources
-                    ,@(for/list ([source (coverage-coverage-sources report)])
-                        `(source ,source)))
-                   (packages
-                    ,@(for/list ([package (coverage-coverage-packages report)])
-                        `(package
-                          ([name ,(coverage-package-name package)]
-                           [line-rate ,(real->decimal-string (coverage-package-line-rate package) 4)]
-                           [branch-rate "0"]
-                           [complexity "0"])
-                          (classes
-                           ,@(for/list ([class (coverage-package-classes package)])
-                               `(class
-                                    ([name ,(coverage-class-name class)]
-                                     [filename ,(coverage-class-filename class)]
-                                     [line-rate ,(real->decimal-string (coverage-class-line-rate class) 4)]
-                                     [branch-rate "0"]
-                                     [complexity "0"])
-                                  (methods)
-                                  (lines
-                                   ,@(for/list ([line (coverage-class-lines class)])
-                                       `(line ([number ,(number->string (coverage-line-number line))]
-                                               [hits ,(number->string (coverage-line-hits line))])))))))))))))
+            (list (xexpr->xml
+                   `(packages
+                     ,@(for/list ([package (coverage-coverage-packages report)])
+                         `(package
+                           ([name ,(coverage-package-name package)]
+                            [line-rate ,(real->decimal-string (coverage-package-line-rate package) 4)]
+                            [branch-rate "0"]
+                            [complexity "0"])
+                           (classes
+                            ,@(for/list ([class (coverage-package-classes package)])
+                                `(class
+                                     ([name ,(coverage-class-name class)]
+                                      [filename ,(coverage-class-filename class)]
+                                      [line-rate ,(real->decimal-string (coverage-class-line-rate class) 4)]
+                                      [branch-rate "0"]
+                                      [complexity "0"])
+                                   (methods)
+                                   (lines
+                                    ,@(for/list ([line (coverage-class-lines class)])
+                                        `(line ([number ,(number->string (coverage-line-number line))]
+                                                [hits ,(number->string (coverage-line-hits line))])))))))))))))
    '()))
 
 (define (generate-cobertura-coverage coverage files [d "coverage"])
